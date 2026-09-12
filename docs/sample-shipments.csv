@@ -1,0 +1,6 @@
+external_id,regional_office,shipment_date,source_batch
+NG-UK-1001,northgate-uk,07/03/2026,batch-uk-41
+NG-US-2001,northgate-us,07/03/2026,batch-us-42
+NG-ISO-3001,northgate-iso,2026-03-07,batch-iso-7
+NG-UK-1002,northgate-uk,25/12/2026,batch-uk-41
+NG-US-2002,northgate-us,12/25/2026,batch-us-42
