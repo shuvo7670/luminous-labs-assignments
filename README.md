@@ -1,58 +1,190 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Luminous Labs — Senior PHP take-home
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+One Laravel 13 application covering three client tickets: the Fenwick Retail payment webhook (Ticket A), Northgate shipment dates (Ticket B) and Marlow upcoming events (Ticket C). Decisions, assumptions and trade-offs are in [DECISIONS.md](DECISIONS.md).
 
-## About Laravel
+## Reviewer quick start (≤ 5 minutes)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+[![Review](https://github.com/shuvo7670/luminous-labs-assignments/actions/workflows/review.yml/badge.svg)](https://github.com/shuvo7670/luminous-labs-assignments/actions/workflows/review.yml)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+One command installs the app, builds a fresh SQLite database, runs the full test suite and demonstrates every ticket. You don't need npm, a web server or a database server.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Requirements
 
-## Learning Laravel
+- PHP 8.3 or newer
+- Composer 2
+- The `pdo_sqlite` PHP extension
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+Check all three at once:
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+php -v && composer -V && php -m | grep -i sqlite
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+You should see PHP 8.3 or newer, Composer 2.x, and `pdo_sqlite` in the extension list.
 
-## Contributing
+### Run it
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+git clone https://github.com/shuvo7670/luminous-labs-assignments.git && cd luminous-labs-assignments && composer review
+```
 
-## Code of Conduct
+`composer review` runs these steps in order and stops at the first one that fails, with a non-zero exit code:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+1. `composer install --no-interaction`
+2. Copy `.env.example` to `.env` if `.env` is missing
+3. `php artisan key:generate`
+4. Create `database/database.sqlite` if it is missing
+5. `php artisan migrate:fresh --seed --force`
+6. `php artisan test` (71 tests)
+7. `php artisan review:demo`
 
-## Security Vulnerabilities
+### Expected output
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+The test step ends with `Tests: 71 passed`. Then `review:demo` prints one line per check. Output from the commands it runs, the simulated audit mismatch and the ordered event list appear between these lines and are trimmed here:
 
-## License
+```text
+Every demo write runs inside a database transaction that is rolled back at the end.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Ticket A: Fenwick payment webhook
+  PASS  First signed delivery of pay_fenwick_0001 returns 200 (got 200 {"status":"created"})
+  PASS  Retried delivery returns 200 (got 200 {"status":"duplicate"})
+  PASS  Exactly 1 order exists for pay_fenwick_0001 (got 1)
+  PASS  Delivery with a bad signature returns 401 (got 401)
+  PASS  webhooks:check-failures exits 0 (got 0)
+
+Ticket B: Northgate shipment dates
+  PASS  shipments:import exits 0 (got 0)
+  PASS  UK 07/03/2026 is saved as 2026-03-07 (got 2026-03-07)
+  PASS  US 07/03/2026 is saved as 2026-07-03 (got 2026-07-03)
+  PASS  Dry-run shipments:audit-dates exits 0 (got 0)
+  PASS  Dry-run audit reports shipment [NG-US-2001] should be 2026-07-03
+  PASS  Dry run leaves the stored date unchanged (got 2026-03-07)
+
+Ticket C: Marlow upcoming events
+  PASS  GET /api/events/upcoming returns 200 (got 200)
+  PASS  Returns between 1 and 10 events (got 10)
+  PASS  Events are ordered by starts_at, then id
+  PASS  Each event exposes only id, name, starts_at, venue, description
+  PASS  Every returned event is published and starts after now
+
+All checks passed
+```
+
+**How long it takes:** about 10 seconds once Composer has the packages cached. On a clean checkout it took 7.3 s locally (with a warm Composer cache) and about 8 s in GitHub Actions starting from an empty cache. A slow network mainly affects the `composer install` step.
+
+The same command runs in CI on PHP 8.3 and 8.4 for every push and pull request ([.github/workflows/review.yml](.github/workflows/review.yml)).
+
+### Troubleshooting
+
+- **`pdo_sqlite` is missing, or the migrate step fails with `could not find driver`.** Enable the SQLite extension, then run `composer review` again. On Debian or Ubuntu, install `php8.3-sqlite3` (match your PHP version). Homebrew PHP on macOS already includes it. On Windows, uncomment `extension=pdo_sqlite` in `php.ini`.
+- **`composer install` reports a PHP platform requirement.** The dependencies are locked for PHP 8.3 or newer, so upgrade PHP.
+- **The webhook secret is a local demo value.** `.env.example` sets `PAYMENT_PROVIDER_WEBHOOK_SECRET=change-me-before-serving-webhooks`. This value is public, so replace it before the app receives real webhooks. `review:demo` signs with whatever value is configured. If you change it, use the same value in the curl example below. If it is empty, every webhook gets `401` and the Ticket A checks show `FAIL`.
+- **Rerunning is safe.** Run `composer review` as often as you like. Each run rebuilds the local SQLite database with `migrate:fresh --seed`, so anything you added to `database/database.sqlite` is lost, and it writes a new `APP_KEY` to `.env`. `review:demo` rolls back everything it writes. Nothing outside the project directory is touched.
+
+## Manual checks per ticket
+
+These optional checks use the database seeded by `composer review`. Start the app in one terminal:
+
+```bash
+php artisan serve
+```
+
+Run the commands below from the project root in a second terminal.
+
+### Ticket A — Fenwick payment webhook
+
+Send the sample event with a valid signature:
+
+```bash
+payload_file=docs/sample-payment-succeeded.json
+timestamp=$(date +%s)
+signature=$( { printf '%s.' "$timestamp"; cat "$payload_file"; } | openssl dgst -sha256 -hmac 'change-me-before-serving-webhooks' | awk '{print $NF}')
+curl -i http://127.0.0.1:8000/webhooks/payment-provider \
+  -H 'Content-Type: application/json' \
+  -H "Payment-Signature: t=${timestamp},v1=${signature}" \
+  --data-binary "@${payload_file}"
+```
+
+The first request returns `200 {"status":"created"}`. Sending it again returns `200 {"status":"duplicate"}`, and there is still exactly one order. Change any character of `v1`, or reuse a timestamp more than 300 seconds old, and the response is `401 {"message":"Invalid signature."}`. Nothing is stored for a `401`.
+
+How the endpoint works:
+
+- **Signature header.** `Payment-Signature: t=<unix timestamp>,v1=<hex HMAC-SHA256>`. The HMAC covers `<timestamp>.<exact raw request body>` and uses `PAYMENT_PROVIDER_WEBHOOK_SECRET`. It is compared with `hash_equals`, and the timestamp must be within 300 seconds of the current time.
+- **Order creation.** A `payment.succeeded` event creates an order keyed by a unique `(provider, provider_payment_id)` index, so retries and concurrent deliveries end with one order.
+- **Other event types.** Authenticated events of any other type are acknowledged with `200 {"status":"ignored"}`.
+- **Failures.** An invalid payload returns `422` and an unexpected error returns `500`. Either way the failure is saved in `failed_webhooks` (repeats of the same event increment `attempts`) and logged at error level, and the non-2xx response makes the provider retry. When a later delivery of that event succeeds, the failure is marked resolved.
+
+Check for unresolved failures:
+
+```bash
+php artisan webhooks:check-failures   # table of unresolved failures, non-zero exit if any
+php artisan schedule:list             # the check runs every five minutes
+```
+
+### Ticket B — Northgate shipment dates
+
+Each regional office has exactly one accepted date format. A value that does not format back to the exact input is rejected, which catches values like `31/02/2026` and `2026-3-7`.
+
+| Office          | Format       | `07/03/2026` means |
+| --------------- | ------------ | ------------------ |
+| `northgate-uk`  | `DD/MM/YYYY` | 7 March 2026       |
+| `northgate-us`  | `MM/DD/YYYY` | 3 July 2026        |
+| `northgate-iso` | `YYYY-MM-DD` | (rejected)         |
+
+```bash
+php artisan shipments:import docs/sample-shipments.csv        # all-or-nothing import; keeps the raw date
+php artisan shipments:audit-dates                             # dry run: re-parses raw dates, changes nothing
+php artisan shipments:audit-dates --batch=batch-us-42         # limit the audit to one source batch
+php artisan shipments:audit-dates --apply                     # correct dates proven by the raw value
+```
+
+- **Import.** The import checks the header row (`external_id`, `regional_office`, `shipment_date`, optional `source_batch`) and the column count of every row. It runs in one transaction, so a single bad row imports nothing and the error names the row. Rows are matched by `external_id`, so re-importing a file is safe.
+- **Audit.** After a clean import the audit reports `0 mismatched`. `review:demo` shows it catching a simulated historical misread. Rows with no raw value, or a raw value that cannot be parsed, are reported as `Needs source-file review`. They are never changed, and the command exits non-zero.
+
+### Ticket C — Marlow upcoming events
+
+```bash
+curl -s http://127.0.0.1:8000/api/events/upcoming
+```
+
+The endpoint returns up to 10 events that are `published` and start strictly after now, ordered by `starts_at` and then `id`. Each event exposes only public fields:
+
+```json
+{
+  "data": [
+    {
+      "id": 10,
+      "name": "ipsum maxime est",
+      "starts_at": "2026-09-15T21:00:00+00:00",
+      "venue": "Gradytown Hall",
+      "description": "Aut dolorum itaque sapiente reiciendis repellat."
+    }
+  ]
+}
+```
+
+The endpoint is intentionally unauthenticated. The application has no auth system and the ticket does not define one. Marlow must confirm that public access is acceptable before release (see [DECISIONS.md](DECISIONS.md)).
+
+## Tests
+
+```bash
+php artisan test
+```
+
+The 71 tests run against in-memory SQLite. Any test that depends on time freezes it with `travelTo`, and signed requests are built the same way the provider signs them. Coverage is weighted by risk:
+
+| Test | What it covers |
+| ---- | -------------- |
+| [VerifyPaymentProviderSignatureTest](tests/Feature/Http/Middleware/VerifyPaymentProviderSignatureTest.php) | Valid signature over non-canonical raw JSON; the 300 s boundary; wrong secret, re-encoded body, tampered, missing, malformed, stale and future signatures; an unconfigured secret. Every rejection is `401` and stores nothing. |
+| [PaymentWebhookControllerTest](tests/Feature/Http/Controllers/PaymentWebhookControllerTest.php) | Order creation (UTC `paid_at`, upper-case currency); the same event retried; a different event for the same payment; unknown event types; eight malformed payloads (`422` plus a failure row); an unexpected exception (`500`, failure row, error log); repeated failures incrementing `attempts`; recovery resolving the failure. |
+| [CheckFailedWebhooksTest](tests/Feature/Console/Commands/CheckFailedWebhooksTest.php) | Unresolved failures listed with a non-zero exit; success and exit 0 when all are resolved. |
+| [ShipmentDateParserTest](tests/Unit/Services/ShipmentDateParserTest.php) | `07/03/2026` parsed differently per office at UTC midnight; impossible, unpadded, wrong-office, two-digit-year, time-suffixed, padded and empty values rejected; unknown offices. |
+| [ImportShipmentsTest](tests/Feature/Console/Commands/ImportShipmentsTest.php) | Per-office import keeping the raw date; update by `external_id`; optional `source_batch`; UTF-8 BOM; invalid rows rolling back earlier rows; invalid headers; missing file. |
+| [AuditShipmentDatesTest](tests/Feature/Console/Commands/AuditShipmentDatesTest.php) | Dry run reports without changing; `--apply` corrects; `--batch` limits scope; missing or unparseable raw values are flagged, left unchanged and exit non-zero. |
+| [UpcomingEventControllerTest](tests/Feature/Http/Controllers/UpcomingEventControllerTest.php) | Past, starting-now, draft and cancelled events excluded; ordering with a tie; limit of 10; exact JSON with only public fields. |
+| [ReviewDemoTest](tests/Feature/Console/Commands/ReviewDemoTest.php) | `review:demo` passes and leaves no data behind; a failing check exits non-zero. |
+
+Two things are not covered by automated tests:
+
+- **A real concurrent race** on the orders unique key. That is enforced by the database, and a same-connection simulation inside the test transaction cannot reproduce it.
+- **Delivery of scheduler failures to an alert channel.** That is infrastructure outside this application.
