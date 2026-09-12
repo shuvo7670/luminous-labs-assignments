@@ -1,31 +1,7 @@
 # End-of-day status updates
 
-## Fenwick Retail — payment notifications
+**Fenwick Retail.** Your orders now sync automatically. When your payment provider confirms a payment, an order is created in your system, and if the provider sends the same confirmation twice, you still get only one order. Messages that don't really come from your provider are turned away, so nobody can create fake orders. If a confirmation can't be processed, we keep it, the provider sends it again automatically, and your team gets an email until the problem is sorted out (no more than one email an hour). Before we switch this on for real customers, we need three things from you: the name of your payment provider, the secret key the provider gives you for these messages (please share it securely, not by email), and the email address that should receive the alerts. Please also tell us whether refunds should change orders. Today, only successful payments do.
 
-**Done today:** Your online store now creates an order automatically when your payment provider tells us a payment has succeeded. If the provider sends the same notification more than once, which providers do when a connection is slow, you still get exactly one order. Notifications that don't carry your secret signature, or that are more than five minutes old, are rejected, so nobody can create fake orders. If a genuine notification can't be processed, we keep a record of it, ask the provider to send it again, and check every five minutes for any that are still unresolved.
+**Northgate Logistics.** We found and fixed the cause. The import assumed every office writes dates the same way, so a date like 07/03/2026 from your US office was saved as 7 March instead of 3 July. New imports now read each office's dates in that office's own format, and a file with any unreadable date is stopped with a clear message instead of being saved wrongly. Fixing the import alone is not enough, because some wrong dates are already saved. So we also built a check that lists every shipment whose saved date doesn't match its original file, and it changes nothing until you approve. Shipments imported before today didn't keep their original date, so to correct those we need the original import files from the affected office. Please confirm how each office writes its dates, and approve the corrections once you have seen the list.
 
-**What we need from you:**
-
-- The name of your payment provider and a link to its notification documentation, so we can confirm the message format and signature method we have assumed.
-- The live signing secret from your provider's dashboard, shared through a secure channel (not email).
-- Confirmation of where operational alerts should go (for example your on-call email or Slack channel), so an unresolved payment problem reaches a person quickly.
-- Whether refunds or failed payments should also update orders. Today only successful payments do.
-
-## Northgate Logistics — shipment dates
-
-**Done today:** New imports read each regional office's dates in that office's own format, so 07/03/2026 is 7 March from the UK office and 3 July from the US office, and the system never guesses. If any row in a file has a problem, the whole file is rejected with a message naming the row, so a partly wrong import can't slip through. We now keep each date exactly as it appeared in the original file. We also built a checking tool that lists existing shipments whose saved date doesn't match their original text. It only reports by default, and changes nothing until someone approves the corrections.
-
-**What we need from you:**
-
-- Confirmation of the office codes and date formats: UK is day/month/year, US is month/day/year, and ISO is year-month-day.
-- The original import files for older shipments. Records imported before today don't have their original date text, so we cannot safely correct them without those files.
-- Approval to apply the corrections, once you have reviewed the list the checking tool produces, and which import batches you believe are affected.
-
-## Marlow Events — upcoming events
-
-**Done today:** There is now a feed of your next ten upcoming events, in date order. It only includes events you have published, never drafts or cancelled events, and it shares only the event name, start time, venue and description.
-
-**What we need from you:**
-
-- **Before release:** confirmation that this feed may be public. It currently needs no login. If it should only be visible to signed-in users or partners, we'll add that first. This is the one open question blocking release.
-- Confirmation that ten events is the right number, and that start times should be shown in UTC for your site or app to convert to local time.
+**Marlow Events.** The list of your next ten upcoming events is ready. It shows only events you have published, never drafts or cancelled events, and it shares just the event name, start time, venue and description. We need one decision from you before we release it. Right now anyone who has the link can see this list, because your project doesn't have a login yet. If that is fine for public event information, we can release it as it is. If it should be limited to your own website or partners, tell us and we will add that first. Start times are given in one standard time zone for your website to convert to local time. Let us know if you would prefer something different.

@@ -4,7 +4,9 @@ namespace Tests\Feature\Http\Controllers;
 
 use App\Models\FailedWebhook;
 use App\Models\Order;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Testing\TestResponse;
 use Mockery;
@@ -78,6 +80,37 @@ class PaymentWebhookControllerTest extends TestCase
         ]);
     }
 
+    /**
+     * Reproduces the check-then-insert race: a concurrent delivery inserts the order after
+     * this request's lookup found nothing but before its own insert. Only the unique key on
+     * (provider, provider_payment_id) plus firstOrCreate() keeps this at one order and a 200.
+     */
+    public function test_delivery_that_loses_a_concurrent_insert_race_returns_the_existing_order(): void
+    {
+        $competingOrderInserted = false;
+        DB::listen(function (QueryExecuted $query) use (&$competingOrderInserted): void {
+            if ($competingOrderInserted || ! preg_match('/^select .+ from [`"]?orders[`"]? /i', $query->sql)) {
+                return;
+            }
+
+            $competingOrderInserted = true;
+            Order::factory()->create([
+                'provider' => 'payment-provider',
+                'provider_payment_id' => 'pay_123',
+                'provider_event_id' => 'evt_concurrent',
+            ]);
+        });
+
+        $response = $this->postSignedWebhook(self::paymentSucceededEvent());
+
+        $response->assertOk()->assertExactJson(['status' => 'duplicate']);
+
+        $this->assertTrue($competingOrderInserted, 'The competing delivery was never inserted.');
+        $this->assertDatabaseCount('orders', 1);
+        $this->assertDatabaseHas('orders', ['provider_payment_id' => 'pay_123', 'provider_event_id' => 'evt_concurrent']);
+        $this->assertDatabaseEmpty('failed_webhooks');
+    }
+
     public function test_acknowledges_and_ignores_unknown_event_types(): void
     {
         $response = $this->postSignedWebhook([
@@ -132,6 +165,19 @@ class PaymentWebhookControllerTest extends TestCase
             'payload' => $body,
         ]);
         $this->assertStringContainsString($expectedError, FailedWebhook::sole()->last_error);
+    }
+
+    public function test_failures_without_an_event_id_are_recorded_as_separate_rows(): void
+    {
+        $this->postSignedWebhook('not-json');
+
+        $response = $this->postSignedWebhook('{"type":"payment.succeeded"}');
+
+        $response->assertUnprocessable();
+
+        $this->assertDatabaseCount('failed_webhooks', 2);
+        $this->assertDatabaseHas('failed_webhooks', ['provider_event_id' => null, 'attempts' => 1, 'payload' => 'not-json']);
+        $this->assertDatabaseHas('failed_webhooks', ['provider_event_id' => null, 'attempts' => 1, 'payload' => '{"type":"payment.succeeded"}']);
     }
 
     public function test_records_an_unexpected_exception_as_a_failure_logs_it_and_returns_500(): void
@@ -195,6 +241,23 @@ class PaymentWebhookControllerTest extends TestCase
         $this->assertDatabaseCount('orders', 1);
         $this->assertDatabaseHas('failed_webhooks', ['id' => $failureOfThisEvent->id, 'resolved_at' => self::NOW]);
         $this->assertDatabaseHas('failed_webhooks', ['id' => $failureOfOtherEvent->id, 'resolved_at' => null]);
+    }
+
+    public function test_retry_that_finds_the_order_already_created_still_resolves_its_failure(): void
+    {
+        $this->travelTo(self::NOW);
+        Order::factory()->create([
+            'provider' => 'payment-provider',
+            'provider_payment_id' => 'pay_123',
+            'provider_event_id' => 'evt_first',
+        ]);
+        $failure = FailedWebhook::factory()->create(['provider_event_id' => 'evt_second']);
+
+        $response = $this->postSignedWebhook(self::paymentSucceededEvent('evt_second'));
+
+        $response->assertOk()->assertExactJson(['status' => 'duplicate']);
+
+        $this->assertDatabaseHas('failed_webhooks', ['id' => $failure->id, 'resolved_at' => self::NOW]);
     }
 
     /**

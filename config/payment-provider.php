@@ -38,4 +38,19 @@ return [
 
     'signature_tolerance' => 300,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Failure Alerts
+    |--------------------------------------------------------------------------
+    |
+    | While webhook failures are unresolved, webhooks:check-failures emails a
+    | summary to this address, at most once per alert interval, so a person
+    | is told instead of the failure waiting in a table.
+    |
+    */
+
+    'alert_email' => env('PAYMENT_WEBHOOK_ALERT_EMAIL'),
+
+    'alert_interval_minutes' => 60,
+
 ];
