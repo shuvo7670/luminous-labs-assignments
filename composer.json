@@ -45,6 +45,16 @@
             "Composer\\Config::disableProcessTimeout",
             "@php artisan dev"
         ],
+        "review": [
+            "Composer\\Config::disableProcessTimeout",
+            "@composer install --no-interaction",
+            "@php -r \"exit(file_exists('.env') || copy('.env.example', '.env') ? 0 : 1);\"",
+            "@php artisan key:generate --ansi",
+            "@php -r \"exit(file_exists('database/database.sqlite') || touch('database/database.sqlite') ? 0 : 1);\"",
+            "@php artisan migrate:fresh --seed --force --ansi",
+            "@php artisan test",
+            "@php artisan review:demo --ansi"
+        ],
         "test": [
             "@php artisan config:clear --ansi @no_additional_args",
             "@php artisan test"
@@ -68,6 +78,9 @@
             "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
         ]
     },
+    "scripts-descriptions": {
+        "review": "Install, migrate and seed a fresh SQLite database, run the test suite, then run review:demo. No npm or server required."
+    },
     "extra": {
         "laravel": {
             "dont-discover": []
@@ -75,6 +88,9 @@
     },
     "config": {
         "optimize-autoloader": true,
+        "platform": {
+            "php": "8.3.0"
+        },
         "preferred-install": "dist",
         "sort-packages": true,
         "allow-plugins": {
