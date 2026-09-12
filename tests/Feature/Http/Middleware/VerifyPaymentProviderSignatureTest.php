@@ -20,7 +20,7 @@ class VerifyPaymentProviderSignatureTest extends TestCase
     /**
      * Deliberately non-canonical JSON, so verifying a re-encoded body would fail.
      */
-    private const string BODY = '{ "id": "evt_123",  "type": "payment.succeeded" }';
+    private const string BODY = '{ "id": "evt_123",  "type": "test.ping" }';
 
     protected function setUp(): void
     {
@@ -47,7 +47,7 @@ class VerifyPaymentProviderSignatureTest extends TestCase
 
         $response = $this->postWebhook(self::signatureHeader($timestamp, self::BODY));
 
-        $response->assertOk()->assertExactJson(['status' => 'received']);
+        $response->assertOk()->assertExactJson(['status' => 'ignored']);
     }
 
     /**
@@ -57,7 +57,7 @@ class VerifyPaymentProviderSignatureTest extends TestCase
     {
         return [
             'signed with a different secret' => [self::signatureHeader(self::NOW, self::BODY, 'wrong-secret')],
-            'signed over a re-encoded body' => [self::signatureHeader(self::NOW, '{"id":"evt_123","type":"payment.succeeded"}')],
+            'signed over a re-encoded body' => [self::signatureHeader(self::NOW, '{"id":"evt_123","type":"test.ping"}')],
             'signature value tampered' => ['t='.self::NOW.',v1='.str_repeat('0', 64)],
             'v1 element missing' => ['t='.self::NOW],
             'timestamp not numeric' => [self::signatureHeader('now', self::BODY)],

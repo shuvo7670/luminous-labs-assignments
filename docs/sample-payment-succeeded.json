@@ -1,0 +1,13 @@
+{
+    "id": "evt_fenwick_0001",
+    "type": "payment.succeeded",
+    "data": {
+        "object": {
+            "id": "pay_fenwick_0001",
+            "amount": 4999,
+            "currency": "GBP",
+            "customer_email": "customer@example.com",
+            "paid_at": "2026-09-12T10:15:00Z"
+        }
+    }
+}
